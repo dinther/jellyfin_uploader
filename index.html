@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Resumable Multi file uploader</title>
+		<meta name="theme-color" content="#000000">
+        <meta name="Description" content="Resumable Multi file uploader">
+        <meta id="viewport" name="viewport" content="initial-scale=1, minimum-scale=1, width=device-width, user-scalable=no">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="header">
+            <img src="images/banner-light.png"/>
+            <p class="title">Media uploader</p>
+        </div>
+          
+        <div id="droptarget">
+            <p>Media uploaded will be considered for inclusion. Make sure to let me know you uploaded something. Uploaded files can't be downloaded here. Drag and drop files onto the page or use the buttons below.</p>
+            <p>File size limit is 7 Gigabyte per file. Uploads can be interupted and resumed whenever you want.</p>
+            <div id="files">
+            </div>
+            <div id="addline" class="fileline">
+                <button type="button" id="addfiles" title="Opens file select dialog. Select one or multiple files. Upload starts immediately." class="buttonarea add">   
+                    <svg class="svg-icon"
+                        role="img"
+                        height="10"
+                        width="10"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                        focusable="false">
+                        <path d="M0 8h8v-8h6v8h8v6h-8v8h-6v-8h-8z"/>
+                    </svg>
+                    Add file
+                </button>
+                <span class="filename">Click button to select file(s)</span>
+            </div>
+        </div>
+        <script src="/app/resumable.js"></script>
+        <script>
+            const files = document.getElementById('files');
+            const svgAdd = '<svg class="svg-icon" role="img" height="14" width="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M0 8h8v-8h6v8h8v6h-8v8h-6v-8h-8z"/></svg>';
+            const svgPause = '<svg class="svg-icon" role="img" height="14" width="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 3h6v18h-6zM12 3h6v18h-6"/></svg>';
+            const svgResume = '<svg class="svg-icon" role="img" height="14" width="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m5,18h18v6h-18zM11 16v-8h-4l7,-7 7,7h-4v8z"/></svg>';
+            const svgDone = '<svg class="svg-icon" role="img" height="14" width="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m2,9h3v1c2,-2 6,-3 7,-9 0,0 3,0 3,2l-1,6 7,1v4l-2,6H5v1H2Z"/></svg>';
+            const svgAlready = '<svg class="svg-icon" role="img" height="14" width="14" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="m11,18h6v6h-6zM11 16v-15h6v15z"/></svg>';
+
+            var r = new Resumable({
+                target: '/app/upload.php',
+                chunkSize: 30 * 1024 * 1024,
+                simultaneousUploads: 4
+            });
+
+            function fileExists(file,size){
+                return new Promise((resolve, reject)=>{
+                    var xhttp = new XMLHttpRequest();
+                    xhttp.onreadystatechange = function() {
+                        if (this.readyState == 4 && this.status == 200) {
+                            if (xhttp.responseText == '1') resolve(true);
+                            else resolve(false);
+                        }
+                    };
+                    xhttp.onerror = function(event) {
+                        reject(event);
+                    }
+                    xhttp.ontimeout = function(event) {
+                        reject(event);
+                    }                    
+                    xhttp.open("GET", "/app/fileexists.php?fileName=" + file + '&fileSize='+size, true);
+                    xhttp.send();
+
+                });
+            }
+
+            function formatFileSize(size){
+                if (size > 1000000000000) return (size/1000000000000).toFixed(1) + 'T'; //Terrabytes
+                if (size > 1000000000) return (size/1000000000).toFixed(1) + 'G'; //Gigabytes
+                if (size > 1000000) return (size/1000000).toFixed(1) + 'M'; //Megabytes
+                if (size > 1000) return (size/1000).toFixed(1) + 'K'; //Kilobytes
+                return Math.floor(size) + 'B'; //Bytes
+            }
+
+            function createButton(icon, text, classname, hint = '', show=false){
+                var button = document.createElement('button');
+                button.setAttribute('title',hint);
+                button.setAttribute('type','button');
+                button.classList.add('buttonarea');
+                if (!show) button.classList.add('hide');
+                button.classList.add(classname);
+                button.innerHTML = icon;
+                button.appendChild(document.createTextNode(text));
+                return button
+            }         
+            
+            function addFileToUI(file){
+                var fileLine = document.createElement('div');
+                fileLine.id = file.fileName;
+                fileLine.classList.add('fileline');
+                //  buttons
+                var pauseBtn = createButton(svgPause, 'Pause', 'pause', 'Pause file upload once current chunks are completed.', true);
+                pauseBtn.addEventListener('click', (e)=>{
+                    file.abort();
+                    fileLine.querySelector('.pause').classList.add('hide');
+                    fileLine.querySelector('.resume').classList.remove('hide');
+                    fileLine.querySelector('.done').classList.add('hide');
+                    fileLine.querySelector('.already').classList.add('hide');
+                }) ;
+                var resumeBtn = createButton(svgResume, 'Resume', 'resume', 'Resume file upload.', false);
+                resumeBtn.addEventListener('click', (e)=>{
+                    //file.pause();
+                    file.retry();
+                    fileLine.querySelector('.pause').classList.remove('hide');
+                    fileLine.querySelector('.resume').classList.add('hide');
+                    fileLine.querySelector('.done').classList.add('hide');  
+                    fileLine.querySelector('.already').classList.add('hide');
+                }) ;                
+                var doneBtn = createButton(svgDone, 'Done', 'done', 'Upload complete. Remove this entry in the file list.', false);
+                doneBtn.addEventListener('click', (e)=>{
+                    document.getElementById(file.fileName).remove();                 
+                }) ;  
+                var alreadyBtn = createButton(svgAlready, 'Already', 'already', 'This file was already uploaded.', false);
+                alreadyBtn.addEventListener('click', (e)=>{
+                    document.getElementById(file.fileName).remove();                 
+                }) ;                                 
+                fileLine.appendChild(pauseBtn);
+                fileLine.appendChild(resumeBtn);
+                fileLine.appendChild(doneBtn);
+                fileLine.appendChild(alreadyBtn);
+                //  Text data
+                var fileName = document.createElement('span');
+                fileName.setAttribute('title',file.fileName);
+                fileName.classList.add('filenamearea');
+                fileName.innerText = file.fileName;
+                fileLine.appendChild(fileName);
+                var fileSize = document.createElement('span');
+                fileSize.classList.add('filesizearea');
+                fileSize.innerText = formatFileSize(file.size);
+                fileLine.appendChild(fileSize);
+                //  Cancel btn
+                var cancelBtn = document.createElement('button');
+                cancelBtn.setAttribute('title','Cancel upload and remove entry in file list.');
+                cancelBtn.setAttribute('type','button');
+                cancelBtn.classList.add('cancelarea');
+                cancelBtn.innerText = 'X';
+                cancelBtn.addEventListener('click', (e)=>{
+                    let fileLine = document.getElementById(file.fileName);
+                    file.cancel();
+                    fileLine.remove();
+
+                }) ;  
+                fileLine.appendChild(cancelBtn);
+                //  Progress bar
+                var progressBarContainer = document.createElement('div');
+                progressBarContainer.classList.add('progressbararea');
+                var progressBar = document.createElement('div');
+                progressBar.classList.add('progress');
+                progressBar.style.width = '0%';
+                progressBarContainer.appendChild(progressBar);
+                fileLine.appendChild(progressBarContainer);
+                files.appendChild(fileLine);
+                return fileLine;
+            }
+
+            function getSizeDone(){
+                var sizeDone = 0;
+                var totalSize = 0
+                for (var i=0; i< r.files.length; i++){
+                    sizeDone += r.files[i].size * r.files[i].progress();
+                    //totalSize += r.files[i].size; 
+                }
+                return sizeDone;
+            }
+
+            var timeStamp = 0;
+            var lastSizeDone = 0;
+            var bytesPerSecond = 0;
+            var uploads = document.getElementById('uploads')
+            r.assignBrowse(document.getElementById('addfiles'));
+            r.assignDrop(document.getElementById('droptarget'));
+
+            r.on('fileSuccess', function(file){
+                let fileLine = document.getElementById(file.fileName);
+                fileLine.querySelector('.progress').style.width = '100%';
+                fileLine.querySelector('.pause').classList.add('hide');
+                fileLine.querySelector('.resume').classList.add('hide');
+                fileLine.querySelector('.done').classList.remove('hide');
+                fileLine.querySelector('.already').classList.add('hide');
+            });
+            r.on('fileProgress', function(file){
+                let fileLine = document.getElementById(file.fileName);
+                fileLine.querySelector('.progress').style.width = Math.trunc(file.progress() * 100) + '%';
+            });
+            r.on('fileAdded', function(file, event){
+                console.log('file added');
+                let fileLine = addFileToUI(file);
+                fileExists(file.fileName, file.size).then(result=>{
+                    if (result){
+                        fileLine.querySelector('.progress').style.width = '100%';
+                        fileLine.querySelector('.pause').classList.add('hide');
+                        fileLine.querySelector('.resume').classList.add('hide');
+                        fileLine.querySelector('.done').classList.add('hide');
+                        fileLine.querySelector('.already').classList.remove('hide');
+                        r.removeFile(file);
+                    } else {
+                        r.upload();
+                    }
+                });
+            });
+            r.on('filesAdded', function(array){
+                console.log('files added');
+                //r.upload();
+                console.log('filesAdded', array);
+            });
+            r.on('fileRetry', function(file){
+                //document.getElementById(file.fileName).children[0].children[0].innerText = ' Retry.';
+            });
+            r.on('fileError', function(file, message){
+                //document.getElementById(file.fileName).children[0].children[0].innerText = ' Error.';
+                console.log('fileError', file, message);
+            });
+            r.on('uploadStart', function(){
+                console.log('uploadStart');
+                timeStamp = new Date().getTime();
+            });
+            r.on('complete', function(){
+                console.log('complete');
+            });
+            r.on('progress', function(){
+                
+            });
+            r.on('error', function(message, file){
+                console.log('error', message, file);
+            });
+            r.on('pause', function(){
+                console.log('pause');
+            });
+            r.on('cancel', function(){
+                console.log('cancel');
+            });
+        </script>
+    </body>
+</html>

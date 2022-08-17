@@ -1,0 +1,155 @@
+body {
+    margin: 0;
+    background-color: #101010;
+    color: rgba(255, 255, 255, 0.8);
+    font-family: Noto Sans,Noto Sans HK,Noto Sans JP,Noto Sans KR,Noto Sans SC,Noto Sans TC,sans-serif;
+    font-size: 0.9em;
+    box-sizing: border-box;
+}
+
+img {
+  user-select: none;
+}
+
+#droptarget {
+  padding:10px;
+}
+
+.filename span {
+    margin-left: 10px;
+}
+
+.header {
+  overflow: hidden;
+  background-color: #202020;
+  padding: 0px 10px;
+  display: flex;
+  flex-grow: 1;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+  align-items: center;
+}
+  
+  .title {
+    color: white;
+    font-size: 18px;
+  }
+  
+  .header img {
+    height: 40px;
+  }
+
+#files {
+  counter-reset: div;
+}
+
+ 
+.buttonarea { grid-area: 1 / 1 / 3 / 2; }
+.filenamearea {
+  grid-area: 1 / 2 / 2 / 3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  width: 100%;
+}
+
+.filesizearea { grid-area: 1 / 3 / 2 / 4; }
+.cancelarea {
+  grid-area: 1 / 4 / 3 / 5;
+  font-size: 1.6em;
+  color:#ED4E4E;
+}
+.progressbararea {
+  grid-area: 2 / 2 / 3 / 4;
+  width: 100%;
+  height: 100%;
+  border-radius: 1.2em;
+  border: solid 1px #585858;
+  overflow:hidden;
+}
+
+.progress {
+  background-color: #4067bf;
+  height: 100%;
+  border-radius: 0.2em;
+}
+
+.hide {
+  display: none;
+}
+
+.fileline {
+  display: grid;
+  align-items: center;
+  justify-items: start;
+  grid-template-columns: 5.5em 1fr max-content 2em;
+  grid-template-rows: 2.0em 0.5em 0.5em;
+  justify-content: space-between;
+  grid-column-gap: 0.5em;
+  grid-row-gap: 0;
+}
+
+button {
+  user-select:none;
+  background-color: transparent;
+  font-size: 0.9em;
+  font-weight: bold;
+  display: grid;
+  grid-template-columns: 10px 1fr;
+  grid-column-gap: 6px;
+  height: 100%;
+  line-height: 100%;
+  position: relative;
+  padding: 0.6em;
+  color: white;
+  border-radius: 0.325em;
+  white-space: nowrap;
+  width: 100%;
+  outline: none;
+  border: none;
+  filter: brightness(0.8);
+  justify-items: start;
+  justify-content: center;
+  align-content: center;
+}
+
+.add{
+  background-color:#5BC0DE;
+}
+
+.done{
+  background-color:#5BB85D;
+}
+
+.already{
+  background-color:#6ae06c;
+}
+
+.pause{
+  background-color:#EFAD4D;
+}
+
+.resume{
+  background-color:#A95ADD;
+}
+
+button:hover {
+  filter: brightness(1);
+}
+
+button:active {
+    top: .08em;
+}
+
+.svg-icon {
+  position: relative;
+  top: .125em;
+  flex-shrink: 0;
+  height: 1em;
+  width: 1em;
+  fill: currentColor;
+}
+  
+
+
